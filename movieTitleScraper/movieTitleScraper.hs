@@ -3,11 +3,13 @@
 import Text.HTML.Scalpel
 import Control.Monad
 import Data.Typeable
-import qualified Data.ByteString.Char8 as C8
+import Data.Maybe
 
 inFile :: FilePath
-inFile = "/home/dxk/hsstuff/temp.html"
+inFile = "temp.html"
 
+outFile :: FilePath
+outFile = "movieTitles.txt"
 
 movieTitles :: Scraper String [[String]]
 movieTitles = chroots "tr" $ chroots "td" $  do
@@ -24,5 +26,5 @@ allMovieTitles inStr = scrapeStringLike inStr movieTitles
 main :: IO ()
 main = do
   cur <- readFile inFile
-  mapM_ (print . join) $ allMovieTitles cur
+  writeFile outFile $ catMaybes $ mapM (unlines . join) $ allMovieTitles cur
 
