@@ -1,5 +1,5 @@
 # misc-haskell-experiments
 miscellaneous experiments in haskell
-- **SimpleTCP** - simple TCP server
+- **TCPEcho** - TCP echo server
 - **Tinkerbell** - Tinkerbell map using Gloss
 - **movieTitleScraper** - scraping movie titles from Wikipedia
