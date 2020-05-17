@@ -3,6 +3,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BSU
 import Network.Socket{- network -}
 import Network.Socket.ByteString (recv, sendAll, send)
+import Control.Concurrent
+import Control.Monad
 
 hostTuple :: (Word8, Word8, Word8, Word8)
 hostTuple = (127,0,0,1)
@@ -32,13 +34,14 @@ runHTTPServ portno = do
   return sock
 
 mainLoop :: Socket -> IO ()
-mainLoop sock = do
+mainLoop sock = forever $ do
   cnx <- accept sock
-  cnxHandler cnx
-  mainLoop sock
+  forkIO $ cnxHandler cnx
+  
 
 cnxHandler :: (Socket, SockAddr) -> IO ()
 cnxHandler (sock, _) = do
   putStrLn "socket accepted!"
-  send sock $ BSU.fromString "hullo"
+  cur_str <- recv sock maxRecv
+  send sock $ cur_str
   close sock
