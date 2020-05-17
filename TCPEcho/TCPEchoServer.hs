@@ -20,7 +20,7 @@ maxRecv = 1024 -- max bytes received
 
 main :: IO ()
 main = do
-  sock <- runHTTPServ inPort
+  sock <- runTCPServ inPort
   mainLoop sock
   
 
