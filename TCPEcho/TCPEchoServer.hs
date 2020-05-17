@@ -25,8 +25,8 @@ main = do
   
 
 
-runHTTPServ :: PortNumber -> IO Socket
-runHTTPServ portno = do
+runTCPServ :: PortNumber -> IO Socket
+runTCPServ portno = do
   sock <- socket AF_INET Stream 0
   setSocketOption sock ReuseAddr 1
   bind sock $ SockAddrInet portno $ tupleToHostAddress hostTuple
