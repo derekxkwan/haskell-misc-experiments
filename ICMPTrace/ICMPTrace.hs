@@ -18,7 +18,7 @@ type PacketTry = Int
 type PacketTTL = Int
 type SendSock = Socket
 type RecvSock = Socket
-type PacketReply = (Pico, SockAddr)
+type PacketReply = (SockAddr, Pico)
 
 maxHops :: Int
 maxHops = 30
@@ -71,8 +71,8 @@ respPrinter packetreply curtry = do
   case packetreply of
     Nothing -> putStrLn $ mconcat ["(", show curtry, ") * * * * *"]
     Just x -> putStrLn $ mconcat ["(", show curtry, ") ", show addr, " --- ", show elapsedTime, " ms"]
-      where elapsedTime = fst x
-            addr = snd x
+      where elapsedTime = snd x
+            addr = fst x
 
 packetSender :: SendSock -> RecvSock -> IpTuple -> PacketTTL -> IO (Maybe PacketReply)
 packetSender outsock insock iptup curttl = do
@@ -84,7 +84,7 @@ packetSender outsock insock iptup curttl = do
   let timeElapsed = 1000 * (nominalDiffTimeToSeconds $ diffUTCTime stopTime startTime)
   case ans of
     Nothing -> return Nothing
-    Just x -> return $ Just $ (timeElapsed, snd x)
+    Just x -> return $ Just $ (snd x, timeElapsed)
 
 packetHandler :: SendSock -> RecvSock -> IpTuple -> PacketTTL -> IO ()
 packetHandler outsock insock iptup curttl = do
