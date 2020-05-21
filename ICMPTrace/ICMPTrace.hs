@@ -69,8 +69,8 @@ icmpSocket = do
 respPrinter :: (Maybe PacketReply) -> PacketTry -> IO ()
 respPrinter packetreply curtry = do
   case packetreply of
-    Nothing -> putStrLn $ "(" <> show curtry <> ") * * * * *"
-    Just x -> putStrLn $ "(" <> show curtry <>  ") " <> show addr <>  " --- " <> show elapsedTime <> " ms"
+    Nothing -> putStrLn $ mconcat ["(", show curtry, ") * * * * *"]
+    Just x -> putStrLn $ mconcat ["(", show curtry, ") ", show addr, " --- ", show elapsedTime, " ms"]
       where elapsedTime = fst x
             addr = snd x
 
