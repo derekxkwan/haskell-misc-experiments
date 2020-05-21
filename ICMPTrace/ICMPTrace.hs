@@ -35,9 +35,6 @@ ip4ToList s = case dropWhile (== '.')  s of
                 s' -> w':(ip4ToList s'')
                   where (w, s'') = break (== '.') s'
                         w' = (read w) :: Word8
-                        
-hostTuple :: (Word8, Word8, Word8, Word8)
-hostTuple = (127,0,0,1)
 
 inPort :: PortNumber
 inPort = 3000
