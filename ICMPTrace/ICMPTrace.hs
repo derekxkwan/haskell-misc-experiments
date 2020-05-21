@@ -39,25 +39,17 @@ ip4ToList s = case dropWhile (== '.')  s of
 hostTuple :: (Word8, Word8, Word8, Word8)
 hostTuple = (127,0,0,1)
 
-startPort :: PortNumber
-startPort = 1000
-
 inPort :: PortNumber
 inPort = 3000
 
-maxCnx :: Int
-maxCnx = 1024
-
 triesPerTTL :: Int
 triesPerTTL = 3
-
 
 maxRecv :: Int
 maxRecv = 1024 -- max bytes received
 
 secToMicrosec :: Int -> Int
 secToMicrosec s = s * 1000000
-
    
 udpSocket :: IO SendSock
 udpSocket = do
@@ -66,48 +58,53 @@ udpSocket = do
   return sock
 
 
-icmpSocket :: PortNumber -> IO RecvSock
-icmpSocket portno = do
+icmpSocket :: IO RecvSock
+icmpSocket = do
   let hints = defaultHints {
         addrFlags = [AI_PASSIVE]
         }
   sock <- socket AF_INET Raw 1
-  curAddr <- getAddrInfo (Just hints) Nothing (Just $ show portno)
+  curAddr <- getAddrInfo (Just hints) Nothing (Just $ show inPort)
   bind sock $ addrAddress $ head curAddr
   return sock
 
 
-respPrinter :: IO (Maybe PacketReply) -> IO ()
-respPrinter packetreply = do
-  cur <- packetreply
-  case cur of
-    Nothing -> putStrLn ""
-    Just x -> putStrLn $ show addr <>  ", " <> show elapsedTime <> " ms"
+respPrinter :: (Maybe PacketReply) -> PacketTry -> IO ()
+respPrinter packetreply curtry = do
+  case packetreply of
+    Nothing -> putStrLn $ "(" <> show curtry <> ") * * * * *"
+    Just x -> putStrLn $ "(" <> show curtry <>  ") " <> show addr <>  " --- " <> show elapsedTime <> " ms"
       where elapsedTime = fst x
             addr = snd x
 
-packetSender :: SendSock -> RecvSock -> PortNumber -> IpTuple -> PacketTTL -> IO (Maybe PacketReply)
-packetSender outsock insock portno iptup curttl = do
+packetSender :: SendSock -> RecvSock -> IpTuple -> PacketTTL -> IO (Maybe PacketReply)
+packetSender outsock insock iptup curttl = do
   setSocketOption outsock TimeToLive curttl
   startTime <- getCurrentTime
-  sendTo outsock (BSU.fromString "") $ SockAddrInet portno (tupleToHostAddress iptup)
+  sendTo outsock (BSU.fromString "") $ SockAddrInet inPort (tupleToHostAddress iptup)
   ans <- timeout (secToMicrosec 2) $ recvFrom insock maxRecv
   stopTime <- getCurrentTime
   let timeElapsed = 1000 * (nominalDiffTimeToSeconds $ diffUTCTime stopTime startTime)
   case ans of
     Nothing -> return Nothing
     Just x -> return $ Just $ (timeElapsed, snd x)
+
+packetHandler :: SendSock -> RecvSock -> IpTuple -> PacketTTL -> IO ()
+packetHandler outsock insock iptup curttl = do
+  mbreplies <- replicateM triesPerTTL $ packetSender outsock insock iptup curttl
+  let mbreply = msum mbreplies
+  respPrinter mbreply $ (curttl :: PacketTry)
     
-targetHandler :: PortNumber-> IpTuple -> IO ()
-targetHandler portno iptup = do
-  icmpSock <- icmpSocket portno
+targetHandler :: IpTuple -> IO ()
+targetHandler iptup = do
+  icmpSock <- icmpSocket
   udpSock <- udpSocket
-  mapM_ (respPrinter . packetSender udpSock icmpSock portno iptup) $ ([1..maxHops] :: [PacketTTL])
+  mapM_ (packetHandler udpSock icmpSock iptup) $ ([1..maxHops] :: [PacketTTL])
   
 main :: IO ()
 main = do
   inStr <- fmap head getArgs
   case (ip4ToTuple inStr) of
     Nothing -> return ()
-    Just cur -> targetHandler inPort cur
+    Just cur -> targetHandler cur
 
